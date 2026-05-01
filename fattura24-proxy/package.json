@@ -1,9 +1,0 @@
-{
-  "name": "fattura24-proxy",
-  "version": "1.0.0",
-  "description": "Proxy serverless Vercel per API Fattura24",
-  "private": true,
-  "engines": {
-    "node": ">=18"
-  }
-}
