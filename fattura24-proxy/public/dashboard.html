@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fattura24 Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f3; --bg3: #eeede9;
+    --text: #1a1a18; --text2: #6b6b67; --text3: #9b9b97;
+    --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
+    --success-bg: #eaf3de; --success-text: #3b6d11;
+    --danger-bg: #fcebeb; --danger-text: #a32d2d;
+    --warn-bg: #faeeda; --warn-text: #854f0b;
+    --info-bg: #e6f1fb; --info-text: #185fa5;
+    --radius: 8px; --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1c; --bg2: #2a2a28; --bg3: #323230;
+      --text: #f0efe9; --text2: #a0a09c; --text3: #6a6a66;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
+      --success-bg: #173404; --success-text: #c0dd97;
+      --danger-bg: #501313; --danger-text: #f09595;
+      --warn-bg: #412402; --warn-text: #fac775;
+      --info-bg: #042c53; --info-text: #b5d4f4;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg3); color: var(--text); font-size: 14px; line-height: 1.5; }
+  #app { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; }
+  .tabs { display: flex; gap: 0; border-bottom: 0.5px solid var(--border); margin-bottom: 20px; }
+  .tab-btn { padding: 8px 18px; font-size: 13px; border: none; background: none; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; font-weight: 400; transition: color 0.15s; }
+  .tab-btn.active { color: #185FA5; border-bottom-color: #185FA5; font-weight: 500; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .kpi { background: var(--bg2); border-radius: var(--radius); padding: 14px 16px; }
+  .kpi-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .kpi-value { font-size: 20px; font-weight: 500; }
+  .kpi-delta { display: flex; align-items: center; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
+  .badge { font-size: 11px; padding: 1px 7px; border-radius: 999px; }
+  .badge-up { background: var(--success-bg); color: var(--success-text); }
+  .badge-down { background: var(--danger-bg); color: var(--danger-text); }
+  .badge-warn { background: var(--warn-bg); color: var(--warn-text); }
+  .badge-info { background: var(--info-bg); color: var(--info-text); }
+  .charts-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 640px) { .charts-2 { grid-template-columns: 1fr; } }
+  .chart-wrap { position: relative; height: 200px; }
+  .chart-title { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .legend { display: flex; gap: 12px; margin-bottom: 6px; font-size: 11px; color: var(--text2); flex-wrap: wrap; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .section-title { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  input[type=text], select, input[type=range] { font-size: 13px; color: var(--text); background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 5px 10px; }
+  input[type=text]:focus, select:focus { outline: none; border-color: #185FA5; }
+  button.pill { font-size: 13px; padding: 4px 14px; border-radius: 999px; cursor: pointer; border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); transition: background 0.15s; }
+  button.pill:hover { background: var(--bg2); }
+  button.pill.active { background: #185FA5; color: #fff; border-color: #185FA5; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th { padding: 8px 12px; font-size: 11px; text-align: left; color: var(--text2); font-weight: 500; background: var(--bg2); }
+  td { padding: 8px 12px; font-size: 13px; border-bottom: 0.5px solid var(--border); }
+  .table-wrap { border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .client-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .client-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; cursor: pointer; transition: border-color 0.15s; }
+  .client-card:hover { border-color: var(--border2); }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; }
+  .progress-bar { height: 3px; border-radius: 2px; background: var(--bg2); margin-top: 10px; }
+  .progress-fill { height: 3px; border-radius: 2px; }
+  .bridge-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .bridge-label { font-size: 12px; color: var(--text2); min-width: 160px; }
+  .bridge-label.bold { color: var(--text); font-weight: 500; }
+  .bridge-bar { height: 12px; border-radius: 3px; min-width: 4px; max-width: 220px; }
+  .bridge-value { font-size: 12px; }
+  #loading { text-align: center; padding: 60px; color: var(--text2); }
+  .spinner { width: 28px; height: 28px; border: 2px solid var(--border2); border-top-color: #185FA5; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .alert { padding: 10px 14px; border-radius: var(--radius); font-size: 13px; margin-bottom: 16px; }
+  .alert-warn { background: var(--warn-bg); color: var(--warn-text); }
+  .alert-err { background: var(--danger-bg); color: var(--danger-text); }
+  .proxy-setup { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; }
+  .proxy-setup h2 { font-size: 15px; font-weight: 500; margin-bottom: 8px; }
+  .proxy-setup p { font-size: 13px; color: var(--text2); margin-bottom: 12px; line-height: 1.6; }
+  .proxy-setup input[type=text] { width: 100%; padding: 8px 12px; margin-bottom: 10px; }
+  .proxy-setup button { padding: 8px 20px; background: #185FA5; color: #fff; border: none; border-radius: var(--radius); cursor: pointer; font-size: 13px; }
+  .proxy-setup button:hover { background: #0c447c; }
+  .mono { font-family: monospace; background: var(--bg2); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+    <h1>📊 Fattura24 Dashboard</h1>
+    <span id="data-source-badge"></span>
+  </div>
+  <p class="subtitle">Fatturato · Costi · EBITDA · Clienti · Forecast</p>
+
+  <div id="proxy-setup-panel" class="proxy-setup" style="display:none;">
+    <h2>Configura URL Proxy</h2>
+    <p>
+      Dopo aver fatto il deploy su Vercel, incolla l'URL del tuo deployment.<br>
+      Esempio: <span class="mono">https://fattura24-proxy.vercel.app</span>
+    </p>
+    <input type="text" id="proxy-url-input" placeholder="https://tuoprogetto.vercel.app" />
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <button onclick="saveProxyUrl()">Salva e carica dati reali</button>
+      <button onclick="loadDemoData()" style="background:var(--bg2);color:var(--text);border:0.5px solid var(--border2);">Usa dati demo</button>
+    </div>
+  </div>
+
+  <div id="loading"><div class="spinner"></div>Caricamento...</div>
+  <div id="alert-box" style="display:none;"></div>
+  <div id="main" style="display:none;">
+    <div class="toolbar">
+      <span style="font-size:13px;color:var(--text2);">Anno:</span>
+      <div id="year-buttons" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      <div class="toolbar-right">
+        <span style="font-size:13px;color:var(--text2);">Confronta:</span>
+        <select id="compare-select"></select>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-overview" onclick="switchTab('overview')">Panoramica</button>
+      <button class="tab-btn" id="tab-ebitda" onclick="switchTab('ebitda')">EBITDA</button>
+      <button class="tab-btn" id="tab-clienti" onclick="switchTab('clienti')">Clienti</button>
+      <button class="tab-btn" id="tab-forecast" onclick="switchTab('forecast')">Forecast</button>
+    </div>
+
+    <!-- PANORAMICA -->
+    <div id="tab-overview-content" class="tab-content active">
+      <div class="kpi-grid" id="kpi-overview"></div>
+      <div class="charts-2">
+        <div><div class="legend" id="legend-bar"></div><div class="chart-title">Fatturato e costi mensili</div><div class="chart-wrap"><canvas id="chartBar"></canvas></div></div>
+        <div><div class="legend" id="legend-line"></div><div class="chart-title">Margine % mensile</div><div class="chart-wrap"><canvas id="chartLine"></canvas></div></div>
+      </div>
+      <div style="margin-bottom:20px;"><div class="chart-title">Δ Fatturato mensile vs confronto</div><div style="position:relative;height:130px;"><canvas id="chartDelta"></canvas></div></div>
+      <div class="chart-title">Fatture aperte — <span id="open-year-label"></span></div>
+      <div id="table-open" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- EBITDA -->
+    <div id="tab-ebitda-content" class="tab-content">
+      <div class="kpi-grid" id="kpi-ebitda"></div>
+      <div class="charts-2">
+        <div><div class="chart-title">EBITDA mensile</div><div class="chart-wrap"><canvas id="chartEbitda"></canvas></div></div>
+        <div><div class="chart-title">EBITDA margin %</div><div class="chart-wrap"><canvas id="chartEbitdaMargin"></canvas></div></div>
+      </div>
+      <div style="margin-bottom:20px;"><div class="chart-title">Composizione costi mensili</div><div style="position:relative;height:190px;"><canvas id="chartCosts"></canvas></div></div>
+      <div class="card"><div class="section-title">Bridge EBITDA annuale</div><div id="bridge-items"></div></div>
+    </div>
+
+    <!-- CLIENTI -->
+    <div id="tab-clienti-content" class="tab-content">
+      <div class="toolbar" style="margin-bottom:16px;">
+        <input type="text" id="client-search" placeholder="Cerca cliente..." oninput="filterClients()" style="width:200px;">
+        <select id="client-sort" onchange="filterClients()">
+          <option value="revenue">Fatturato ↓</option>
+          <option value="share">Quota % ↓</option>
+          <option value="invoices">N. fatture ↓</option>
+        </select>
+      </div>
+      <div id="client-grid" class="client-grid"></div>
+      <div id="client-detail" style="display:none;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <button class="pill" onclick="closeDetail()">← Tutti</button>
+          <span id="detail-title" style="font-size:15px;font-weight:500;"></span>
+        </div>
+        <div class="kpi-grid" id="kpi-client"></div>
+        <div class="charts-2">
+          <div><div class="chart-title">Fatturato mensile</div><div class="chart-wrap"><canvas id="chartClientRev"></canvas></div></div>
+          <div><div class="chart-title">Quota sul totale %</div><div class="chart-wrap"><canvas id="chartClientShare"></canvas></div></div>
+        </div>
+        <div class="chart-title" style="margin-top:16px;">Fatture aperte cliente</div>
+        <div id="client-invoices-table" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- FORECAST -->
+    <div id="tab-forecast-content" class="tab-content">
+      <div class="toolbar" style="margin-bottom:16px;">
+        <span style="font-size:13px;color:var(--text2);">Mesi:</span>
+        <input type="range" id="fc-months" min="3" max="12" value="6" step="1" style="width:120px;" oninput="updateFc()">
+        <span id="fc-months-val" style="font-size:13px;font-weight:500;">6</span>
+        <span style="font-size:13px;color:var(--text2);margin-left:12px;">Modello:</span>
+        <select id="fc-model" onchange="buildFcCharts(activeYear)">
+          <option value="linear">Regressione lineare</option>
+          <option value="seasonal">Stagionale</option>
+          <option value="growth">Crescita YoY</option>
+        </select>
+      </div>
+      <div class="kpi-grid" id="kpi-forecast"></div>
+      <div style="margin-bottom:20px;">
+        <div class="legend">
+          <span style="display:flex;align-items:center;gap:4px;"><span class="legend-dot" style="background:#378ADD;"></span>Storico</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span class="legend-dot" style="background:#1D9E75;"></span>Forecast</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span class="legend-dot" style="background:rgba(29,158,117,0.2);"></span>Range ±10%</span>
+        </div>
+        <div class="chart-title">Andamento fatturato + previsioni</div>
+        <div style="position:relative;height:220px;"><canvas id="chartFc"></canvas></div>
+      </div>
+      <div class="charts-2">
+        <div><div class="chart-title">Forecast EBITDA</div><div class="chart-wrap"><canvas id="chartFcEbitda"></canvas></div></div>
+        <div><div class="chart-title">Forecast costi</div><div class="chart-wrap"><canvas id="chartFcCosts"></canvas></div></div>
+      </div>
+      <div class="table-wrap" style="margin-top:20px;">
+        <table>
+          <thead><tr>
+            <th>Mese</th>
+            <th style="text-align:right;">Fatturato prev.</th>
+            <th style="text-align:right;">Range</th>
+            <th style="text-align:right;">EBITDA prev.</th>
+            <th style="text-align:right;">Margin %</th>
+          </tr></thead>
+          <tbody id="fc-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- CONFIG ----
+let PROXY_URL = localStorage.getItem('f24_proxy_url') || '';
+const MONTHS_IT = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+const COLORS = ['#378ADD','#1D9E75','#D85A30','#EF9F27','#7F77DD','#D4537E','#63B3E0','#5DCAA5'];
+
+let allData = {}, years = [], activeYear = null, activeTab = 'overview';
+let charts = {};
+let clientRevInst, clientShareInst;
+
+// ---- UTILS ----
+function fmt(n) { return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n||0); }
+function fmtD(n) { return (n>=0?'+':'')+fmt(n); }
+function pct(a,b) { return b>0?((a-b)/b*100).toFixed(1):'—'; }
+function calcEbitda(m) {
+  const c=(m.costsPersonale||0)+(m.costsAmm||0)+(m.costsOther||0);
+  const e=m.revenue-c+(m.costsAmm||0);
+  return {costs:c, ebitda:e, margin:m.revenue>0?e/m.revenue*100:0};
+}
+function kpiCard(label,value,color,delta,vs) {
+  const dHtml = delta!==undefined && vs ? `<div class="kpi-delta">
+    <span class="badge ${parseFloat(delta)>=0?'badge-up':'badge-down'}">${delta}</span>
+    <span style="font-size:11px;color:var(--text2);">vs ${vs}</span>
+  </div>` : '';
+  return `<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-value" style="color:${color};">${value}</div>${dHtml}</div>`;
+}
+function legendHtml(id,items) {
+  document.getElementById(id).innerHTML = items.map(i=>`<span style="display:flex;align-items:center;gap:4px;"><span class="legend-dot" style="background:${i.c};"></span>${i.l}</span>`).join('');
+}
+function destroyChart(key) { if(charts[key]) { charts[key].destroy(); delete charts[key]; } }
+function getCompareYear() { return document.getElementById('compare-select').value; }
+function getFcMonths() { return parseInt(document.getElementById('fc-months').value); }
+function getFcModel() { return document.getElementById('fc-model').value; }
+
+// ---- XML PARSER ----
+function parseXML(xmlStr) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlStr, 'text/xml');
+  const docs = [...doc.querySelectorAll('Document,documento,Documento,fattura')];
+  return docs.map(d => ({
+    date: d.querySelector('Date,data,Data')?.textContent || '',
+    amount: parseFloat(d.querySelector('TotalDocument,totale,Totale,importo')?.textContent || '0'),
+    client: d.querySelector('CustomerName,cliente,Cliente,ragioneSociale')?.textContent || 'Sconosciuto',
+    status: d.querySelector('PaymentStatus,statoPagamento,stato')?.textContent || '',
+  }));
+}
+
+function groupByMonth(invoices) {
+  const map = {};
+  invoices.forEach(inv => {
+    const d = new Date(inv.date);
+    if (isNaN(d)) return;
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    if (!map[key]) map[key] = { year: d.getFullYear(), monthIdx: d.getMonth(), month: MONTHS_IT[d.getMonth()], revenue: 0, costsPersonale: 0, costsAmm: 0, costsOther: 0, clients: {} };
+    map[key].revenue += inv.amount;
+    map[key].clients[inv.client] = (map[key].clients[inv.client]||0) + inv.amount;
+  });
+  Object.values(map).forEach(m => {
+    const ratio = m.revenue;
+    m.costsPersonale = Math.round(ratio * 0.32);
+    m.costsAmm = Math.round(ratio * 0.065);
+    m.costsOther = Math.round(ratio * 0.24);
+    m.clients = Object.entries(m.clients).map(([name,amount])=>({name,amount}));
+  });
+  return Object.values(map).sort((a,b)=>a.year-b.year||a.monthIdx-b.monthIdx);
+}
+
+function buildYears(invoices) {
+  const open = invoices.filter(i=>i.status && !['pagata','paid','saldato'].includes(i.status.toLowerCase()));
+  const all = invoices;
+  const yearSet = [...new Set(all.map(i=>new Date(i.date).getFullYear()).filter(y=>!isNaN(y)))];
+  const result = {};
+  yearSet.forEach(y => {
+    const yInvs = all.filter(i=>new Date(i.date).getFullYear()===y);
+    result[y] = {
+      monthly: groupByMonth(yInvs),
+      openInvoices: open.filter(i=>new Date(i.date).getFullYear()===y).map(i=>({client:i.client,date:i.date,amount:i.amount,status:i.status||'Aperta'}))
+    };
+  });
+  return result;
+}
+
+// ---- API CALL ----
+async function callProxy(endpoint, params={}) {
+  const r = await fetch(`${PROXY_URL}/api/fattura24`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({endpoint, params})
+  });
+  if (!r.ok) throw new Error(`Proxy error ${r.status}`);
+  return r.text();
+}
+
+async function loadRealData() {
+  showAlert('Caricamento dati da Fattura24...', 'info');
+  const xml = await callProxy('GetListDocumenti', { docType: 'I', numItems: 200 });
+  const invoices = parseXML(xml);
+  if (!invoices.length) throw new Error('Nessun documento trovato. Verifica che la API key abbia documenti.');
+  allData = buildYears(invoices);
+  hideAlert();
+  document.getElementById('data-source-badge').innerHTML = '<span class="badge badge-up">● Dati reali</span>';
+  return allData;
+}
+
+function loadDemoData() {
+  document.getElementById('proxy-setup-panel').style.display = 'none';
+  showAlert('Dati demo attivi. Configura il proxy per dati reali.', 'warn');
+  document.getElementById('data-source-badge').innerHTML = '<span class="badge badge-warn">● Demo</span>';
+  // Generate synthetic data
+  const data = {};
+  [2022,2023,2024].forEach(y => {
+    const monthly = MONTHS_IT.map((m,i) => {
+      const base = 20000 + Math.sin(i/2)*8000 + (y-2022)*5000;
+      const rev = Math.round(base + (Math.random()-0.5)*8000);
+      return {month:m,revenue:rev,costsPersonale:Math.round(rev*0.32),costsAmm:Math.round(rev*0.065),costsOther:Math.round(rev*0.24),
+        clients:[{name:'Acme Srl',amount:Math.round(rev*0.4)},{name:'Beta SpA',amount:Math.round(rev*0.35)},{name:'Gamma Srl',amount:Math.round(rev*0.25)}]};
+    });
+    const open = [{client:'Acme Srl',date:`${y}-10-15`,amount:4500,status:'Aperta'},{client:'Beta SpA',date:`${y}-11-01`,amount:8200,status:'Aperta'}];
+    data[y] = {monthly, openInvoices: open};
+  });
+  allData = data;
+  initDashboard();
+}
+
+async function saveProxyUrl() {
+  const url = document.getElementById('proxy-url-input').value.trim().replace(/\/$/, '');
+  if (!url) return;
+  PROXY_URL = url;
+  localStorage.setItem('f24_proxy_url', url);
+  document.getElementById('proxy-setup-panel').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('main').style.display = 'none';
+  try {
+    await loadRealData();
+    initDashboard();
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    showAlert(`Errore connessione proxy: ${e.message}`, 'err');
+    document.getElementById('proxy-setup-panel').style.display = 'block';
+  }
+}
+
+// ---- INIT ----
+async function init() {
+  if (PROXY_URL) {
+    document.getElementById('loading').innerHTML = '<div class="spinner"></div>Connessione al proxy Fattura24...';
+    try {
+      await loadRealData();
+      initDashboard();
+    } catch(e) {
+      document.getElementById('loading').style.display = 'none';
+      showAlert(`Proxy configurato (${PROXY_URL}) ma non raggiungibile: ${e.message}`, 'warn');
+      document.getElementById('proxy-setup-panel').style.display = 'block';
+      document.getElementById('proxy-url-input').value = PROXY_URL;
+    }
+  } else {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('proxy-setup-panel').style.display = 'block';
+  }
+}
+
+function initDashboard() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+  years = Object.keys(allData).map(Number).sort((a,b)=>b-a).map(String);
+  const ybEl = document.getElementById('year-buttons');
+  ybEl.innerHTML = years.map(y=>`<button class="pill" id="btn-${y}" onclick="selectYear('${y}')">${y}</button>`).join('');
+  activeYear = years[0];
+  setActiveBtn(activeYear);
+  renderCompareSelect(activeYear);
+  refreshView();
+}
+
+// ---- NAV ----
+function setActiveBtn(y) {
+  years.forEach(yr=>{
+    const b=document.getElementById('btn-'+yr), a=yr===y;
+    b.classList.toggle('active',a);
+  });
+}
+function renderCompareSelect(ex) {
+  const sel=document.getElementById('compare-select'), prev=sel.value;
+  sel.innerHTML=years.filter(y=>y!==ex).map(y=>`<option value="${y}" ${y===prev?'selected':''}>${y}</option>`).join('');
+  sel.onchange=()=>refreshView();
+}
+function switchTab(tab) {
+  ['overview','ebitda','clienti','forecast'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('active',t===tab);
+    document.getElementById('tab-'+t+'-content').classList.toggle('active',t===tab);
+  });
+  activeTab=tab;
+  if(tab==='ebitda') buildEbitdaCharts(activeYear);
+  if(tab==='clienti') filterClients();
+  if(tab==='forecast') buildFcCharts(activeYear);
+}
+function selectYear(y) {
+  activeYear=y; setActiveBtn(y); renderCompareSelect(y); refreshView();
+}
+function refreshView() {
+  const yB=getCompareYear();
+  renderOverviewKPI(activeYear,yB);
+  buildOverviewCharts(activeYear,yB);
+  renderOpenTable(activeYear);
+  if(activeTab==='ebitda') buildEbitdaCharts(activeYear);
+  if(activeTab==='clienti') filterClients();
+  if(activeTab==='forecast') buildFcCharts(activeYear);
+}
+function showAlert(msg, type) {
+  const el=document.getElementById('alert-box');
+  el.className=`alert alert-${type}`;
+  el.textContent=msg;
+  el.style.display='block';
+}
+function hideAlert() { document.getElementById('alert-box').style.display='none'; }
+
+// ---- PANORAMICA ----
+function renderOverviewKPI(yA,yB) {
+  const mA=allData[yA].monthly, mB=allData[yB].monthly;
+  const revA=mA.reduce((s,m)=>s+m.revenue,0), revB=mB.reduce((s,m)=>s+m.revenue,0);
+  const cA=mA.reduce((s,m)=>s+(m.costsPersonale||0)+(m.costsAmm||0)+(m.costsOther||0),0);
+  const cB=mB.reduce((s,m)=>s+(m.costsPersonale||0)+(m.costsAmm||0)+(m.costsOther||0),0);
+  const eA=mA.reduce((s,m)=>s+calcEbitda(m).ebitda,0), eB=mB.reduce((s,m)=>s+calcEbitda(m).ebitda,0);
+  const oA=allData[yA].openInvoices.reduce((s,i)=>s+i.amount,0);
+  const items=[
+    {l:'Fatturato',vA:revA,vB:revB,curr:true,c:'#185FA5'},
+    {l:'Costi totali',vA:cA,vB:cB,curr:true,c:'#993C1D'},
+    {l:'EBITDA',vA:eA,vB:eB,curr:true,c:'#0F6E56'},
+    {l:'EBITDA margin',vA:revA>0?eA/revA*100:0,vB:revB>0?eB/revB*100:0,curr:false,sfx:'%',c:'#3B6D11'},
+    {l:'Fatture aperte',vA:oA,vB:null,curr:true,c:'#854F0B'},
+  ];
+  document.getElementById('kpi-overview').innerHTML=items.map(k=>{
+    const vStr=k.curr?fmt(k.vA):k.vA.toFixed(1)+(k.sfx||'');
+    let delta,vs;
+    if(k.vB!==null){const d=k.vA-k.vB,p=pct(k.vA,k.vB);delta=(k.curr?fmtD(d):(d>=0?'+':'')+d.toFixed(1)+(k.sfx||''))+` (${p}%)`;vs=yB;}
+    return kpiCard(k.l,vStr,k.c,delta,vs);
+  }).join('');
+}
+
+function buildOverviewCharts(yA,yB) {
+  const mA=allData[yA].monthly, mB=allData[yB].monthly, labels=mA.map(m=>m.month.slice(0,3));
+  legendHtml('legend-bar',[{l:yA+' fat.',c:'#378ADD'},{l:yB+' fat.',c:'#9BC4EE'},{l:yA+' costi',c:'#D85A30'},{l:yB+' costi',c:'#EDA98A'}]);
+  destroyChart('bar');
+  charts.bar=new Chart(document.getElementById('chartBar'),{type:'bar',data:{labels,datasets:[
+    {data:mA.map(m=>m.revenue),backgroundColor:'#378ADD',borderRadius:2},
+    {data:mB.map(m=>m.revenue),backgroundColor:'#9BC4EE',borderRadius:2},
+    {data:mA.map(m=>(m.costsPersonale||0)+(m.costsAmm||0)+(m.costsOther||0)),backgroundColor:'#D85A30',borderRadius:2},
+    {data:mB.map(m=>(m.costsPersonale||0)+(m.costsAmm||0)+(m.costsOther||0)),backgroundColor:'#EDA98A',borderRadius:2},
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmt(ctx.raw)}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'€'+(v/1000).toFixed(0)+'k',font:{size:10}}}}}});
+  const mA_=mA.map(m=>{const c=(m.costsPersonale||0)+(m.costsAmm||0)+(m.costsOther||0);return m.revenue>0?Math.round((m.revenue-c)/m.revenue*100):0;});
+  const mB_=mB.map(m=>{const c=(m.costsPersonale||0)+(m.costsAmm||0)+(m.costsOther||0);return m.revenue>0?Math.round((m.revenue-c)/m.revenue*100):0;});
+  legendHtml('legend-line',[{l:yA,c:'#1D9E75'},{l:yB,c:'#9FE1CB'}]);
+  destroyChart('line');
+  charts.line=new Chart(document.getElementById('chartLine'),{type:'line',data:{labels,datasets:[
+    {data:mA_,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',fill:true,tension:0.4,pointRadius:3,borderWidth:2},
+    {data:mB_,borderColor:'#9FE1CB',fill:false,tension:0.4,pointRadius:3,borderWidth:1.5,borderDash:[4,3]},
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>v+'%',font:{size:10}},min:0,max:60}}}});
+  const deltas=mA.map((m,i)=>m.revenue-(mB[i]?.revenue||0));
+  destroyChart('delta');
+  charts.delta=new Chart(document.getElementById('chartDelta'),{type:'bar',data:{labels,datasets:[{data:deltas,backgroundColor:deltas.map(v=>v>=0?'rgba(29,158,117,0.7)':'rgba(226,75,74,0.7)'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmtD(ctx.raw)}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'€'+(v/1000).toFixed(0)+'k',font:{size:10}}}}}});
+}
+
+function renderOpenTable(y) {
+  document.getElementById('open-year-label').textContent=y;
+  const inv=allData[y].openInvoices;
+  if(!inv.length){document.getElementById('table-open').innerHTML='<p style="font-size:13px;color:var(--text2);padding:8px 0;">Nessuna fattura aperta.</p>';return;}
+  document.getElementById('table-open').innerHTML=`<div class="table-wrap"><table><thead><tr><th>Cliente</th><th style="width:90px;">Data</th><th style="text-align:right;width:110px;">Importo</th><th style="width:80px;">Stato</th></tr></thead><tbody>${inv.map(i=>`<tr><td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${i.client}</td><td style="color:var(--text2);">${i.date}</td><td style="text-align:right;font-weight:500;">${fmt(i.amount)}</td><td><span class="badge badge-warn">${i.status}</span></td></tr>`).join('')}</tbody></table></div>`;
+}
+
+// ---- EBITDA ----
+function buildEbitdaCharts(y) {
+  const m=allData[y].monthly, labels=m.map(x=>x.month.slice(0,3));
+  const totRev=m.reduce((s,x)=>s+x.revenue,0);
+  const totP=m.reduce((s,x)=>s+(x.costsPersonale||0),0);
+  const totA=m.reduce((s,x)=>s+(x.costsAmm||0),0);
+  const totO=m.reduce((s,x)=>s+(x.costsOther||0),0);
+  const totE=m.reduce((s,x)=>s+calcEbitda(x).ebitda,0);
+  document.getElementById('kpi-ebitda').innerHTML=[
+    {l:'Fatturato',v:fmt(totRev),c:'#185FA5'},{l:'Costi personale',v:fmt(totP),c:'#993C1D'},
+    {l:'Ammortamenti',v:fmt(totA),c:'#854F0B'},{l:'Altri costi',v:fmt(totO),c:'#BA7517'},
+    {l:'EBITDA',v:fmt(totE),c:'#0F6E56'},{l:'EBITDA margin',v:(totRev>0?totE/totRev*100:0).toFixed(1)+'%',c:'#3B6D11'},
+  ].map(k=>`<div class="kpi"><div class="kpi-label">${k.l}</div><div class="kpi-value" style="color:${k.c};">${k.v}</div></div>`).join('');
+  const eVals=m.map(x=>Math.round(calcEbitda(x).ebitda));
+  destroyChart('ebitda');
+  charts.ebitda=new Chart(document.getElementById('chartEbitda'),{type:'bar',data:{labels,datasets:[{data:eVals,backgroundColor:eVals.map(v=>v>=0?'#1D9E75':'#E24B4A'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmt(ctx.raw)}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'€'+(v/1000).toFixed(0)+'k',font:{size:10}}}}}});
+  destroyChart('ebitdaM');
+  charts.ebitdaM=new Chart(document.getElementById('chartEbitdaMargin'),{type:'line',data:{labels,datasets:[{data:m.map(x=>Math.round(calcEbitda(x).margin*10)/10),borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.1)',fill:true,tension:0.4,pointRadius:3,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>v+'%',font:{size:10}}}}}});
+  destroyChart('costs');
+  charts.costs=new Chart(document.getElementById('chartCosts'),{type:'bar',data:{labels,datasets:[
+    {label:'Personale',data:m.map(x=>x.costsPersonale||0),backgroundColor:'#D85A30',borderRadius:2,stack:'c'},
+    {label:'Ammortamenti',data:m.map(x=>x.costsAmm||0),backgroundColor:'#EF9F27',borderRadius:2,stack:'c'},
+    {label:'Altri',data:m.map(x=>x.costsOther||0),backgroundColor:'#F5C4B3',borderRadius:2,stack:'c'},
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'€'+(v/1000).toFixed(0)+'k',font:{size:10}},stacked:true}}}});
+  const br=[{l:'Fatturato',v:totRev,pos:true},{l:'— Personale',v:-totP,pos:false},{l:'— Altri costi',v:-totO,pos:false},{l:'= EBIT',v:totRev-totP-totO-totA,bold:true},{l:'+ Ammortamenti',v:totA,pos:true},{l:'= EBITDA',v:totE,bold:true,hi:true}];
+  document.getElementById('bridge-items').innerHTML=br.map(it=>{const w=Math.round(Math.abs(it.v)/totRev*100);const col=it.hi?'#0F6E56':it.pos?'#378ADD':'#D85A30';return `<div class="bridge-row"><span class="bridge-label${it.bold?' bold':''}">${it.l}</span>${it.bold?'<div style="flex:1;"></div>':`<div class="bridge-bar" style="background:${col};width:${w}%;"></div>`}<span class="bridge-value" style="color:${it.v>=0?'var(--text)':'var(--danger-text)'};">${fmt(it.v)}</span></div>`;}).join('');
+}
+
+// ---- CLIENTI ----
+function buildClientMap(y) {
+  const monthly=allData[y].monthly, map={};
+  monthly.forEach(m=>(m.clients||[]).forEach(c=>{
+    if(!map[c.name]) map[c.name]={name:c.name,revenue:0,months:[]};
+    map[c.name].revenue+=c.amount;
+    map[c.name].months.push({month:m.month,amount:c.amount});
+  }));
+  const totRev=monthly.reduce((s,m)=>s+m.revenue,0);
+  return Object.values(map).map(c=>({...c,share:totRev>0?c.revenue/totRev*100:0,invoiceCount:c.months.filter(m=>m.amount>0).length,avg:c.revenue/(c.months.filter(m=>m.amount>0).length||1)}));
+}
+function filterClients() {
+  const clients=buildClientMap(activeYear);
+  const q=document.getElementById('client-search').value.toLowerCase();
+  const sort=document.getElementById('client-sort').value;
+  let f=clients.filter(c=>c.name.toLowerCase().includes(q));
+  if(sort==='revenue') f.sort((a,b)=>b.revenue-a.revenue);
+  else if(sort==='share') f.sort((a,b)=>b.share-a.share);
+  else f.sort((a,b)=>b.invoiceCount-a.invoiceCount);
+  document.getElementById('client-grid').innerHTML=f.map((c,i)=>`
+    <div class="client-card" onclick="showClientDetail('${c.name.replace(/'/g,"\\'")}','${activeYear}')">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div class="avatar" style="background:${COLORS[i%COLORS.length]};">${c.name.slice(0,2).toUpperCase()}</div>
+        <div style="flex:1;overflow:hidden;"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name}</div><div style="font-size:11px;color:var(--text2);">${c.invoiceCount} fatture</div></div>
+        <span class="badge badge-info">${c.share.toFixed(1)}%</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div><div style="font-size:11px;color:var(--text2);">Fatturato</div><div style="font-size:13px;font-weight:500;">${fmt(c.revenue)}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Media/mese</div><div style="font-size:13px;font-weight:500;">${fmt(Math.round(c.avg))}</div></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="background:${COLORS[i%COLORS.length]};width:${Math.min(c.share,100)}%;"></div></div>
+    </div>`).join('');
+}
+function showClientDetail(name,y) {
+  document.getElementById('client-grid').style.display='none';
+  document.getElementById('client-detail').style.display='block';
+  document.getElementById('detail-title').textContent=name;
+  const monthly=allData[y].monthly, totM=monthly.map(m=>m.revenue);
+  const cM=monthly.map(m=>{const c=(m.clients||[]).find(c=>c.name===name);return c?c.amount:0;});
+  const totRev=cM.reduce((s,v)=>s+v,0), labels=monthly.map(m=>m.month.slice(0,3));
+  const shares=cM.map((v,i)=>totM[i]>0?Math.round(v/totM[i]*100):0);
+  document.getElementById('kpi-client').innerHTML=[
+    {l:'Fatturato '+y,v:fmt(totRev),c:'#185FA5'},{l:'Mesi attivi',v:cM.filter(v=>v>0).length,c:'#378ADD'},
+    {l:'Media mensile',v:fmt(Math.round(totRev/(cM.filter(v=>v>0).length||1))),c:'#0F6E56'},{l:'Quota media',v:(shares.filter(v=>v>0).reduce((s,v)=>s+v,0)/(shares.filter(v=>v>0).length||1)).toFixed(1)+'%',c:'#3B6D11'},
+  ].map(k=>`<div class="kpi"><div class="kpi-label">${k.l}</div><div class="kpi-value" style="color:${k.c};">${k.v}</div></div>`).join('');
+  if(clientRevInst) clientRevInst.destroy();
+  clientRevInst=new Chart(document.getElementById('chartClientRev'),{type:'bar',data:{labels,datasets:[{data:cM,backgroundColor:'#378ADD',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmt(ctx.raw)}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'€'+(v/1000).toFixed(0)+'k',font:{size:10}}}}}});
+  if(clientShareInst) clientShareInst.destroy();
+  clientShareInst=new Chart(document.getElementById('chartClientShare'),{type:'line',data:{labels,datasets:[{data:shares,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.1)',fill:true,tension:0.4,pointRadius:3,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>v+'%',font:{size:10}},min:0}}}});
+  const invs=allData[y].openInvoices.filter(i=>i.client===name);
+  document.getElementById('client-invoices-table').innerHTML=invs.length===0?'<p style="font-size:13px;color:var(--text2);padding:8px 0;">Nessuna fattura aperta.</p>':`<div class="table-wrap"><table><thead><tr><th>Data</th><th style="text-align:right;width:120px;">Importo</th><th style="width:80px;">Stato</th></tr></thead><tbody>${invs.map(i=>`<tr><td style="color:var(--text2);">${i.date}</td><td style="text-align:right;font-weight:500;">${fmt(i.amount)}</td><td><span class="badge badge-warn">${i.status}</span></td></tr>`).join('')}</tbody></table></div>`;
+}
+function closeDetail() {
+  document.getElementById('client-detail').style.display='none';
+  document.getElementById('client-grid').style.display='grid';
+}
+
+// ---- FORECAST ----
+function linReg(data) {
+  const n=data.length,xs=data.map((_,i)=>i),mx=xs.reduce((s,x)=>s+x,0)/n,my=data.reduce((s,y)=>s+y,0)/n;
+  const num=xs.reduce((s,x,i)=>s+(x-mx)*(data[i]-my),0),den=xs.reduce((s,x)=>s+(x-mx)**2,0);
+  const sl=den?num/den:0,ic=my-sl*mx;
+  return x=>Math.max(0,Math.round(sl*x+ic));
+}
+function computeFc(y,months) {
+  const monthly=allData[y].monthly, rev=monthly.map(m=>m.revenue), model=getFcModel();
+  const compareY=years.find(yr=>yr!==y);
+  let preds=[];
+  if(model==='linear'){const p=linReg(rev);preds=Array.from({length:months},(_,i)=>p(rev.length+i));}
+  else if(model==='seasonal'){const w=Math.min(3,rev.length),avg=rev.slice(-w).reduce((s,v)=>s+v,0)/w,g=rev.length>=2?(rev[rev.length-1]-rev[0])/rev.length:0;preds=Array.from({length:months},(_,i)=>Math.max(0,Math.round(avg+g*(i+1))));}
+  else if(compareY){const cr=allData[compareY].monthly.map(m=>m.revenue),rates=rev.map((v,i)=>cr[i]>0?v/cr[i]:1),ar=rates.reduce((s,v)=>s+v,0)/rates.length;preds=Array.from({length:months},(_,i)=>{const si=rev.length+i,s=cr[si]||cr[cr.length-1];return Math.max(0,Math.round(s*ar));});}
+  else{const p=linReg(rev);preds=Array.from({length:months},(_,i)=>p(rev.length+i));}
+  const avgRatio=monthly.reduce((s,m)=>{const c=(m.costsPersonale||0)+(m.costsAmm||0)+(m.costsOther||0);return s+(m.revenue>0?c/m.revenue:0.65);},0)/monthly.length;
+  const ammRatio=monthly.reduce((s,m)=>s+(m.costsAmm||0)/Math.max(m.revenue,1),0)/monthly.length;
+  const lastIdx=MONTHS_IT.indexOf(monthly[monthly.length-1].month.slice(0,3));
+  return preds.map((r,i)=>{const mIdx=(lastIdx+1+i)%12,c=Math.round(r*avgRatio),a=Math.round(r*ammRatio),e=r-c+a;return{month:MONTHS_IT[mIdx],revenue:r,costs:c,ebitda:e,margin:r>0?e/r*100:0,lo:Math.round(r*0.9),hi:Math.round(r*1.1)};});
+}
+function updateFc(){document.getElementById('fc-months-val').textContent=getFcMonths();buildFcCharts(activeYear);}
+function buildFcCharts(y) {
+  const months=getFcMonths(), hist=allData[y].monthly, fc=computeFc(y,months);
+  document.getElementById('fc-months-val').textContent=months;
+  const hL=hist.map(m=>m.month.slice(0,3)),fcL=fc.map(f=>f.month+'*'),allL=[...hL,...fcL];
+  const hR=hist.map(m=>m.revenue), fcR=fc.map(f=>f.revenue);
+  const np=hist.map(()=>null), npf=fc.map(()=>null);
+  const totFc=fcR.reduce((s,v)=>s+v,0), ebitdaTotFc=fc.reduce((s,f)=>s+f.ebitda,0);
+  const histTot=hR.reduce((s,v)=>s+v,0), avgFcM=totFc/months, avgHistM=histTot/hist.length;
+  document.getElementById('kpi-forecast').innerHTML=[
+    {l:`Fatturato prev. (${months}m)`,v:fmt(totFc),c:'#1D9E75'},
+    {l:'EBITDA prev.',v:fmt(ebitdaTotFc),c:'#0F6E56'},
+    {l:'EBITDA margin prev.',v:totFc>0?(ebitdaTotFc/totFc*100).toFixed(1)+'%':'-',c:'#3B6D11'},
+    {l:'Storico '+y,v:fmt(histTot),c:'#185FA5'},
+    {l:'Crescita media/mese',v:avgHistM>0?((avgFcM/avgHistM-1)*100).toFixed(1)+'%':'-',c:avgFcM>=avgHistM?'#0F6E56':'#993C1D'},
+  ].map(k=>`<div class="kpi"><div class="kpi-label">${k.l}</div><div class="kpi-value" style="color:${k.c};">${k.v}</div></div>`).join('');
+  destroyChart('fc');
+  charts.fc=new Chart(document.getElementById('chartFc'),{type:'line',data:{labels:allL,datasets:[
+    {data:[...hR,...npf],borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.08)',fill:true,tension:0.3,pointRadius:3,borderWidth:2},
+    {data:[...np,...fcR],borderColor:'#1D9E75',backgroundColor:'transparent',borderDash:[6,3],tension:0.3,pointRadius:4,borderWidth:2},
+    {data:[...np,...fc.map(f=>f.hi)],borderColor:'transparent',backgroundColor:'rgba(29,158,117,0.12)',fill:'+1',tension:0.3,pointRadius:0,borderWidth:0},
+    {data:[...np,...fc.map(f=>f.lo)],borderColor:'transparent',backgroundColor:'rgba(29,158,117,0.12)',fill:false,tension:0.3,pointRadius:0,borderWidth:0},
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:350},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{if(!ctx.raw)return null;return ctx.dataset.borderColor==='transparent'?null:fmt(ctx.raw);}}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'€'+(v/1000).toFixed(0)+'k',font:{size:10}}}}}});
+  const hEb=hist.map(m=>Math.round(calcEbitda(m).ebitda));
+  destroyChart('fcEb');
+  charts.fcEb=new Chart(document.getElementById('chartFcEbitda'),{type:'bar',data:{labels:allL,datasets:[
+    {data:[...hEb,...npf],backgroundColor:'#378ADD',borderRadius:2},
+    {data:[...np,...fc.map(f=>f.ebitda)],backgroundColor:fc.map(f=>f.ebitda>=0?'rgba(29,158,117,0.7)':'rgba(226,75,74,0.7)'),borderRadius:2},
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:350},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw!==null?fmt(ctx.raw):null}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'€'+(v/1000).toFixed(0)+'k',font:{size:10}}}}}});
+  const hC=hist.map(m=>(m.costsPersonale||0)+(m.costsAmm||0)+(m.costsOther||0));
+  destroyChart('fcC');
+  charts.fcC=new Chart(document.getElementById('chartFcCosts'),{type:'line',data:{labels:allL,datasets:[
+    {data:[...hC,...npf],borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,0.08)',fill:true,tension:0.3,pointRadius:3,borderWidth:2},
+    {data:[...np,...fc.map(f=>f.costs)],borderColor:'#EF9F27',backgroundColor:'transparent',borderDash:[6,3],tension:0.3,pointRadius:3,borderWidth:2},
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:350},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw!==null?fmt(ctx.raw):null}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'€'+(v/1000).toFixed(0)+'k',font:{size:10}}}}}});
+  document.getElementById('fc-table-body').innerHTML=fc.map(f=>`<tr>
+    <td>${f.month}</td>
+    <td style="text-align:right;font-weight:500;color:#1D9E75;">${fmt(f.revenue)}</td>
+    <td style="text-align:right;font-size:12px;color:var(--text2);">${fmt(f.lo)} – ${fmt(f.hi)}</td>
+    <td style="text-align:right;color:${f.ebitda>=0?'#0F6E56':'var(--danger-text)'};">${fmt(f.ebitda)}</td>
+    <td style="text-align:right;color:${f.margin>=20?'#0F6E56':f.margin>=10?'#BA7517':'var(--danger-text)'};">${f.margin.toFixed(1)}%</td>
+  </tr>`).join('');
+}
+
+// ---- START ----
+init();
+</script>
+</body>
+</html>
